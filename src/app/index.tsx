@@ -1,98 +1,200 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useState } from "react";
+import { Button, FlatList, ListRenderItem, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
+interface Produto {
+	nome: string;
+	preco: number;
+	dataCadastro: string;
 }
 
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+export default function Index() {
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+	const [tela, setTela] = useState<'lista' | 'cadastro'>('lista')
+	const [produtos, setProdutos] = useState<Produto[]>([])
 
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
-  );
+	const salvarProduto = (novoProduto: Produto) => {
+		setProdutos(produtos => [...produtos, novoProduto])
+		console.log(produtos)
+	}
+
+	return (
+		<View style={styles.container}>
+			{tela === 'lista' ? (
+				<TelaLista 
+					irCadastro={() => setTela('cadastro')}
+					produtos={produtos}>
+
+				</TelaLista>
+			) : (
+				<TelaCadastro
+					voltarLista={() => setTela('lista')}
+					addProduto={(produto: Produto) => salvarProduto(produto)}
+				>
+				</TelaCadastro>
+			)}
+		</View>
+	);
+}
+
+interface TelaCadastroProps {
+	voltarLista: () => void;
+	addProduto: (produto: Produto) => void
+}
+
+function TelaCadastro(
+	{ voltarLista, addProduto }: TelaCadastroProps
+) {
+
+	const [nome, setNome] = useState('');
+	const [preco, setPreco] = useState<number>(0);
+
+
+
+	const handleChangeNomeProduto = (nome: string) => {
+		setNome(nome);
+	}
+
+	const handleChangePrecoProduto = (preco: string) => {
+
+		setPreco(Number(preco))
+	}
+
+
+	const handleCriarProduto = (nome: string, preco: number) => {
+
+		const today: Date = new Date();
+
+		const dd = String(today.getDate()).padStart(2, '0');
+		const mm = String(today.getMonth() + 1).padStart(2, '0');
+		const yyyy = today.getFullYear();
+		const formatted = `${dd}/${mm}/${yyyy}`;
+
+		const produto = {
+			nome: nome,
+			preco: preco,
+			dataCadastro: formatted
+		} as Produto
+
+		addProduto(produto)
+	}
+
+
+	return (
+		<View>
+			<Text style={styles.textTitle}>
+				Cadastrar - Item Compra
+			</Text>
+
+			<View style={styles.formProduto}>
+				<Text style={styles.textLabel}>Produto:</Text>
+				<TextInput
+					style={styles.inputText}
+					onChangeText={e => handleChangeNomeProduto(e)}
+				>
+				</TextInput>
+
+				<Text style={styles.textLabel}>Preco:</Text>
+				<TextInput
+					style={styles.inputText}
+					onChangeText={e => handleChangePrecoProduto(e)}
+				></TextInput>
+			</View>
+
+			<View style={styles.botao}>
+				<Button
+					title="Cadastrar Item"
+					color={'green'}
+					onPress={() => handleCriarProduto(nome, preco)}
+				>
+				</Button>
+			</View>
+
+			<View>
+				<Button
+					title="Visualizar Lista"
+					color={'blue'}
+					onPress={voltarLista}
+				>
+				</Button>
+			</View>
+		</View>
+	)
+}
+
+interface TelaListProps {
+	irCadastro: () => void;
+	produtos: Produto[];
+}
+
+function TelaLista({ irCadastro, produtos }: TelaListProps) {
+
+	const renderProdutos: ListRenderItem<Produto> = ({item}) => (
+		<View style={styles.itens}>
+			<Text>Nome: {item.nome}</Text>
+			<Text>Preço: {item.preco}</Text>
+			<Text>Data Cadastro: {item.dataCadastro}</Text>
+		</View>
+	)
+
+	return (
+		<View>
+			<Text style={styles.textTitle}>
+				Lista de Itens
+			</Text>
+			<FlatList data={produtos} renderItem={renderProdutos}></FlatList>
+			<View>
+				<Button
+					title="Cadastrar mais Itens"
+					color={"blue"}
+					onPress={irCadastro}>
+				</Button>
+			</View>
+		</View>
+	)
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
+	container: {
+		flex: 1,
+		display: "flex",
+		height: '100%',
+		margin: 10,
+		borderWidth: 1,
+		padding: 10
+	},
+	formProduto: {
+		marginBottom: 30
+	},
+	textTitle: {
+		borderWidth: 1,
+		borderColor: 'red',
+		fontSize: 25,
+		alignItems: "center",
+		textAlign: 'center',
+		fontWeight: 800,
+		marginBottom: 30,
+	},
+	textLabel: {
+		fontSize: 20
+	},
+	inputText: {
+		borderWidth: 1,
+		width: '50%'
+	},
+	produto: {
+		fontSize: 16,
+		fontWeight: 400,
+	},
+	botao: {
+		marginBottom: 10
+	},
+	itens: {
+		borderWidth: 5,
+		borderColor: 'blue',
+		margin: 10
+	}
+	
 });
+
